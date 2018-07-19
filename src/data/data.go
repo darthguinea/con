@@ -29,18 +29,18 @@ func getSession(region string) *session.Session {
 
 func getHosts(wg *sync.WaitGroup) {
 	time.Sleep(1 * time.Second)
+	//ec3Svc := ec2.New(session)
 	wg.Done()
 }
 
 func GetHosts(regions []string) {
-	//ec3Svc := ec2.New(session)
+	var wg sync.WaitGroup
+	wg.Add(len(regions))
+
 	log.Info("Fetching results from [%v] regions", len(regions))
-	// if region == "all" {
-	// 	var wg sync.WaitGroup
-	// 	wg.Add(3)
-	// 	for i := 0; i < 3; i++ {
-	// 		go getHosts(&wg)
-	// 	}
-	// 	wg.Wait()
-	// }
+	for _, r := range regions {
+		log.Debug("Scanning region [%v]", r)
+		go getHosts(&wg)
+	}
+	wg.Wait()
 }
