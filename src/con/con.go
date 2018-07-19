@@ -1,8 +1,11 @@
 package con
 
 import (
-	"time"
 	"sync"
+	"time"
+
+	"../log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 )
@@ -29,14 +32,15 @@ func getHosts(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func GetHosts(region string) {
+func GetHosts(regions []string) {
 	//ec3Svc := ec2.New(session)
-	if region == "all" {
-		var wg sync.WaitGroup
-		wg.Add(3)
-		for i := 0; i < 3; i++ {
-			go getHosts(&wg)
-		}
-		wg.Wait()
-	}
+	log.Info("Fetching results from [%v] regions", len(regions))
+	// if region == "all" {
+	// 	var wg sync.WaitGroup
+	// 	wg.Add(3)
+	// 	for i := 0; i < 3; i++ {
+	// 		go getHosts(&wg)
+	// 	}
+	// 	wg.Wait()
+	// }
 }

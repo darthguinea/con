@@ -6,15 +6,14 @@ import (
 )
 
 // Load (path string) interface - load config file and return interface
-func Load(path string) interface{} {
-	var v interface{}
+func Load(c interface{}, path string) {
 	fi, err := os.Open(path)
 	defer fi.Close()
 
 	if err != nil {
-		return nil
+		return
 	}
+
 	jsonParser := json.NewDecoder(fi)
-	jsonParser.Decode(&v)
-	return v
+	jsonParser.Decode(&c)
 }

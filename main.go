@@ -8,6 +8,12 @@ import (
 	"./src/log"
 )
 
+var cfg Config
+
+type Config struct {
+	Regions []string `json:regions`
+}
+
 func main() {
 	var (
 		flagLogLevel int
@@ -17,12 +23,12 @@ func main() {
 	flag.IntVar(&flagLogLevel, "l", 0, "-l <level> Set the log level 1..5")
 	flag.StringVar(&flagRegions, "r", "all", "-r <regions> Set the regions separated by comma, default will search all")
 	flag.Parse()
-
 	log.SetLevel(flagLogLevel)
 
 	log.Info("Starting con")
 
-	cfg := config.Load("config.json")
+	config.Load(&cfg, "config.json")
+	log.Debug("Using configuration: %v", cfg)
 
-	con.GetHosts("regions: %v")
+	con.GetHosts(cfg.Regions)
 }
