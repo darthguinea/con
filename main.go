@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 
-	"./src/con"
 	"./src/config"
+	"./src/data"
 	"./src/log"
 )
 
@@ -30,5 +30,5 @@ func main() {
 	config.Load(&cfg, "config.json")
 	log.Debug("Using configuration: %v", cfg)
 
-	con.GetHosts(cfg.Regions)
+	data.GetHosts(cfg.Regions)
 }
