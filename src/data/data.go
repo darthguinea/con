@@ -35,7 +35,7 @@ func random(min int, max int) int {
 }
 
 func getHosts(wg *sync.WaitGroup, r string) {
-	randomNum := random(3, 20)
+	randomNum := random(3, 5)
 	time.Sleep(time.Duration(randomNum) * time.Second)
 	wg.Done()
 }
@@ -86,6 +86,13 @@ func GetHosts(r []string, c bool) {
 	}
 }
 
+// ValidIP - Check if a string is a valid IP address or not
+// parameters: ip string
+// returns: bool
+func ValidIP(ip string) bool {
+	return false
+}
+
 func getCachedHosts() {}
 
 func getEC2Hosts(r []string) {
@@ -99,5 +106,5 @@ func getEC2Hosts(r []string) {
 	}
 	wg.Wait()
 	elapsed := time.Since(startTime)
-	log.Info("Data retrived in [%v] seconds", elapsed)
+	log.Info("Data retrived in [%.4v] seconds", elapsed)
 }

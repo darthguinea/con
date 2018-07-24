@@ -22,12 +22,15 @@ func main() {
 	)
 
 	flag.IntVar(&flagLogLevel, "l", 0, "-l <level> Set the log level 1..5")
-	flag.StringVar(&flagRegions, "r", "all", "-r <regions> Set the regions separated by comma, default will search all")
+	flag.StringVar(&flagRegions, "r", "all", "-r <regions> Set the regions separated by comma, default will use the config")
 	flag.BoolVar(&flagClearCache, "c", false, "-c Clear cache")
 	flag.Parse()
+
 	log.SetLevel(flagLogLevel)
+	search := flag.Args()
 
 	log.Info("Starting con")
+	log.Debug("Searching for values [%v]", search)
 
 	if flagClearCache {
 		log.Info("Clearing cache")
