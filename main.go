@@ -8,27 +8,33 @@ import (
 	"./src/log"
 )
 
-var cfg Config
+var Config Configuration
 
-type Config struct {
+type Configuration struct {
 	Regions []string `json:regions`
 }
 
 func main() {
 	var (
-		flagLogLevel int
-		flagRegions  string
+		flagLogLevel   int
+		flagRegions    string
+		flagClearCache bool
 	)
 
 	flag.IntVar(&flagLogLevel, "l", 0, "-l <level> Set the log level 1..5")
 	flag.StringVar(&flagRegions, "r", "all", "-r <regions> Set the regions separated by comma, default will search all")
+	flag.BoolVar(&flagClearCache, "c", false, "-c Clear cache")
 	flag.Parse()
 	log.SetLevel(flagLogLevel)
 
 	log.Info("Starting con")
 
-	config.Load(&cfg, "config.json")
-	log.Debug("Using configuration: %v", cfg)
+	if flagClearCache {
+		log.Info("Clearing cache")
+	}
 
-	data.GetHosts(cfg.Regions)
+	config.Load(&Config, "config.json")
+	log.Debug("Using configuration: %v", Config)
+
+	data.GetHosts(Config.Regions, flagClearCache)
 }

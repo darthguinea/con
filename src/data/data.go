@@ -1,6 +1,8 @@
 package data
 
 import (
+	"math/rand"
+	"os"
 	"sync"
 	"time"
 
@@ -21,26 +23,81 @@ type Tag struct {
 	Value string `json:"value"`
 }
 
-func getSession(region string) *session.Session {
+func getSession(r string) *session.Session {
 	return session.New(&aws.Config{
-		Region: aws.String(region),
+		Region: aws.String(r),
 	})
 }
 
-func getHosts(wg *sync.WaitGroup) {
-	time.Sleep(1 * time.Second)
-	//ec3Svc := ec2.New(session)
+func random(min int, max int) int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(max-min) + min
+}
+
+func getHosts(wg *sync.WaitGroup, r string) {
+	randomNum := random(3, 20)
+	time.Sleep(time.Duration(randomNum) * time.Second)
 	wg.Done()
 }
 
-func GetHosts(regions []string) {
-	var wg sync.WaitGroup
-	wg.Add(len(regions))
+// func getHosts(wg *sync.WaitGroup, r string) (*ec2.DescribeInstancesOutput, error) {
+// 	time.Sleep(1 * time.Second)
+// 	ec2Svc := ec2.New(getSession(r))
 
-	log.Info("Fetching results from [%v] regions", len(regions))
-	for _, r := range regions {
-		log.Debug("Scanning region [%v]", r)
-		go getHosts(&wg)
+// 	filter := &ec2.DescribeInstancesInput{
+// 		Filters: []*ec2.Filter{
+// 			{
+// 				Name: aws.String("instance-state-name"),
+// 				Values: []*string{
+// 					aws.String("running"),
+// 					aws.String("pending"),
+// 				},
+// 			},
+// 		},
+// 	}
+
+// 	reservations, err := ec2Svc.DescribeInstances(filter)
+// 	if err != nil {
+// 		return nil, errors.New("Could not retrieve instance data")
+// 	}
+// 	wg.Done()
+
+// 	return reservations, nil
+// }
+
+// GetHosts - External function used to fetch host information,
+// parameters: r regions (regions) []strings, c bool (clear cache)
+func GetHosts(r []string, c bool) {
+	stat, err := os.Stat("/tmp/ec2.json")
+	if err == nil {
+		timestamp := stat.ModTime().Unix()
+		timeNow := time.Now().Unix()
+		if (timeNow - timestamp) >= 300 {
+			log.Warn("Cached file is over 5 minutes old, regenerating")
+			// data = getEC2Hosts()
+		} else {
+			log.Warn("Getting hosts from cached file")
+			// data = getCachedHosts()
+		}
+	} else {
+		log.Warn("Cached file does not exist, fetching hosts from AWS")
+		// data = getEC2Hosts(r)
+		getEC2Hosts(r)
+	}
+}
+
+func getCachedHosts() {}
+
+func getEC2Hosts(r []string) {
+	var wg sync.WaitGroup
+	wg.Add(len(r))
+
+	log.Info("Fetching results from [%v] regions", len(r))
+	startTime := time.Now()
+	for _, r := range r {
+		go getHosts(&wg, r)
 	}
 	wg.Wait()
+	elapsed := time.Since(startTime)
+	log.Info("Data retrived in [%v] seconds", elapsed)
 }
