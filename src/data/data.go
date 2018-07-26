@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"sync"
 	"time"
@@ -20,17 +19,6 @@ func getSession(r string) *session.Session {
 	return session.New(&aws.Config{
 		Region: aws.String(r),
 	})
-}
-
-func random(min int, max int) int {
-	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(max-min) + min
-}
-
-func getHosts(wg *sync.WaitGroup, r string) {
-	randomNum := random(3, 5)
-	time.Sleep(time.Duration(randomNum) * time.Second)
-	wg.Done()
 }
 
 func filterHosts(search []string) {
