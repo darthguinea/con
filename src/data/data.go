@@ -1,7 +1,9 @@
 package data
 
 import (
+	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"sync"
@@ -13,17 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
-
-type Instance struct {
-	InstanceID string `json:"instance_id"`
-	PrivateIP  string `json:"private_ip"`
-	Tags       []Tag
-}
-
-type Tag struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
 
 func getSession(r string) *session.Session {
 	return session.New(&aws.Config{
@@ -57,16 +48,22 @@ func GetHosts(r []string, c bool, s []string) {
 		timeNow := time.Now().Unix()
 		if (timeNow - timestamp) >= 300 {
 			log.Warn("Cached file is over 5 minutes old, regenerating")
-			// data = getEC2Hosts()
+			data := getEC2Hosts(r)
+			writeCachedFile(data)
 		} else {
 			log.Warn("Getting hosts from cached file")
 			// data = getCachedHosts()
 		}
 	} else {
 		log.Warn("Cached file does not exist, fetching hosts from AWS")
-		// data = getEC2Hosts(r)
-		getEC2Hosts(r)
+		data := getEC2Hosts(r)
+		writeCachedFile(data)
 	}
+}
+
+func writeCachedFile(d []*ec2.DescribeInstancesOutput) {
+	j, _ := json.Marshal(d)
+	ioutil.WriteFile("/tmp/ec2.json", j, 0644)
 }
 
 // ValidIP - Check if a string is a valid IP address or not
@@ -78,18 +75,23 @@ func ValidIP(ip string) bool {
 
 func getCachedHosts() {}
 
-func getEC2Hosts(r []string) {
+func getEC2Hosts(r []string) []*ec2.DescribeInstancesOutput {
 	var wg sync.WaitGroup
 	wg.Add(len(r))
 
 	log.Info("Fetching results from [%v] regions", len(r))
 	startTime := time.Now()
-	for _, r := range r {
-		go getEC2HostsThreads(&wg, r)
+	var instancesOutput []*ec2.DescribeInstancesOutput
+	for _, region := range r {
+		go func(region string) {
+			i, _ := getEC2HostsThreads(&wg, region)
+			instancesOutput = append(instancesOutput, i)
+		}(region)
 	}
 	wg.Wait()
 	elapsed := time.Since(startTime)
-	log.Info("Data retrived in [%.4v] seconds", elapsed)
+	log.Info("Data retrived in [%v]", elapsed)
+	return instancesOutput
 }
 
 func getEC2HostsThreads(wg *sync.WaitGroup, r string) (*ec2.DescribeInstancesOutput, error) {
