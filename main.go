@@ -7,6 +7,7 @@ import (
 	"./src/config"
 	"./src/data"
 	"./src/log"
+	"./src/results"
 )
 
 var Config Configuration
@@ -52,5 +53,7 @@ func main() {
 
 	log.Debug("Using configuration: %v", Config)
 
-	data.GetHosts(Config.Regions, flagClearCache, search)
+	d := data.GetHosts(Config.Regions, flagClearCache)
+	results.Filter(d, search, flagOr)
+	// results.DrawTable(rs)
 }

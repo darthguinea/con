@@ -27,26 +27,44 @@ func filterHosts(search []string) {
 
 // GetHosts - External function used to fetch host information,
 // parameters: regions []string, clear_cache bool, search []string
-func GetHosts(r []string, c bool, s []string) {
+func GetHosts(r []string, c bool) []*ec2.DescribeInstancesOutput {
 	stat, err := os.Stat("/tmp/ec2.json")
-	if err == nil {
-		filterHosts(s)
 
+	if err == nil {
 		timestamp := stat.ModTime().Unix()
 		timeNow := time.Now().Unix()
-		if (timeNow - timestamp) >= 300 {
-			log.Warn("Cached file is over 5 minutes old, regenerating")
+
+		if (timeNow - timestamp) >= 3600 {
+			log.Warn("Cached file is over 1 hour old, regenerating")
 			data := getEC2Hosts(r)
 			writeCachedFile(data)
+			return data
 		} else {
 			log.Warn("Getting hosts from cached file")
-			// data = getCachedHosts()
+			data := getCachedHosts()
+			return data
 		}
-	} else {
-		log.Warn("Cached file does not exist, fetching hosts from AWS")
-		data := getEC2Hosts(r)
-		writeCachedFile(data)
 	}
+
+	log.Warn("Cached file does not exist, fetching hosts from AWS")
+	data := getEC2Hosts(r)
+	writeCachedFile(data)
+
+	return data
+}
+
+func getCachedHosts() []*ec2.DescribeInstancesOutput {
+	var r []*ec2.DescribeInstancesOutput
+	file, err := ioutil.ReadFile("/tmp/ec2.json")
+
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+
+	json.Unmarshal(file, &r)
+
+	return r
 }
 
 func writeCachedFile(d []*ec2.DescribeInstancesOutput) {
@@ -60,8 +78,6 @@ func writeCachedFile(d []*ec2.DescribeInstancesOutput) {
 func ValidIP(ip string) bool {
 	return false
 }
-
-func getCachedHosts() {}
 
 func getEC2Hosts(r []string) []*ec2.DescribeInstancesOutput {
 	var wg sync.WaitGroup
