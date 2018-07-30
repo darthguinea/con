@@ -26,6 +26,7 @@ func main() {
 		flagRegions    string
 		flagTags       string
 		flagClearCache bool
+		flagCount      int
 		flagOr         bool
 		flagTable      bool
 	)
@@ -33,7 +34,8 @@ func main() {
 	flag.IntVar(&flagLogLevel, "l", 0, "-l <level> Set the log level 1..5")
 	flag.StringVar(&flagRegions, "r", "config", "-r <regions> Set the regions separated by comma, default will use the config")
 	flag.StringVar(&flagTags, "t", "config", "-t <tags> Which tags to search seperated by a comma, default uses config")
-	flag.BoolVar(&flagClearCache, "c", false, "-c Clear cache")
+	flag.BoolVar(&flagClearCache, "C", false, "-C Clear cache")
+	flag.IntVar(&flagCount, "c", 5, "-c <count> Number of results to show")
 	flag.BoolVar(&flagOr, "o", false, "-o Search using OR instead of AND")
 	flag.BoolVar(&flagTable, "D", false, "-D Do not render table (for debugging)")
 	flag.Parse()
@@ -76,6 +78,6 @@ func main() {
 	results.By(score).Sort(rs)
 
 	if !flagTable {
-		results.DrawTable(rs[0:5])
+		results.DrawTable(rs[0:flagCount])
 	}
 }
