@@ -1,3 +1,4 @@
 ./config.json
 src/github.com
 bin
+ec2.json

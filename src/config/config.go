@@ -2,18 +2,17 @@ package config
 
 import (
 	"encoding/json"
-	"os"
+	"io/ioutil"
+
+	"../log"
 )
 
 // Load (path string) interface - load config file and return interface
 func Load(c interface{}, path string) {
-	fi, err := os.Open(path)
-	defer fi.Close()
-
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return
+		log.Error("Error loading file [%v]", path)
 	}
 
-	jsonParser := json.NewDecoder(fi)
-	jsonParser.Decode(&c)
+	json.Unmarshal(data, &c)
 }
