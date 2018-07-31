@@ -78,6 +78,6 @@ func main() {
 	results.By(score).Sort(rs)
 
 	if !flagTable {
-		results.DrawTable(rs[0:flagCount])
+		results.DrawTable(rs)
 	}
 }

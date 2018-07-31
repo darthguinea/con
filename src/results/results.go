@@ -27,9 +27,7 @@ func DrawTable(rs []ResultSet) {
 	table.SetHeader(header)
 	table.SetRowLine(true)
 
-	count := 0
 	for _, ins := range rs {
-		count++
 		var name, environment string
 		for _, t := range ins.Instance.Tags {
 			if *t.Key == "Name" {
@@ -51,9 +49,6 @@ func DrawTable(rs []ResultSet) {
 			strconv.Itoa(ins.Score),
 		}
 		table.Append(row)
-		if count > 9 {
-			break
-		}
 	}
 	table.Render()
 }
@@ -67,31 +62,35 @@ func Filter(r []*ec2.DescribeInstancesOutput, s []string, tags []string, o bool)
 	for _, rv := range r {
 		for _, res := range rv.Reservations {
 			for _, ins := range res.Instances {
-				shouldAppend := false
 				score := 0
+				keywordScore := 0
 
 				for _, search := range s {
+					foundKeyword := false
 					if *ins.InstanceId == search {
 						score = 1000
-						shouldAppend = true
 					}
 					if *ins.PrivateIpAddress == search {
 						score = 1000
-						shouldAppend = true
 					}
 					for _, t := range ins.Tags {
 						if searchTag(tags, *t.Key) {
 							if strings.Contains(strings.ToLower(*t.Value), strings.ToLower(search)) {
+								foundKeyword = true
 								score = score + 100
-								shouldAppend = true
+								log.Info("%v = %v %v", *t.Key, *t.Value, score)
 							}
 						}
 					}
+					if foundKeyword {
+						keywordScore = keywordScore + 100
+						foundKeyword = false
+					}
 				}
 
-				if shouldAppend {
+				if score > 0 {
 					tmpInstance := ResultSet{
-						score,
+						score + keywordScore,
 						ins,
 					}
 					rs = append(rs, tmpInstance)
