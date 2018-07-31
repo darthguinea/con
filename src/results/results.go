@@ -2,9 +2,9 @@ package results
 
 import (
 	"os"
-	"strconv"
 	"strings"
 
+	"../data"
 	"../log"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -19,7 +19,6 @@ func DrawTable(rs []ResultSet) {
 		"Private Ip",
 		"Launch Time",
 		"State",
-		"Score",
 	}
 
 	log.Info("Drawing table of results")
@@ -27,6 +26,8 @@ func DrawTable(rs []ResultSet) {
 	table.SetHeader(header)
 	table.SetRowLine(true)
 
+	pip := ""
+	count := 0
 	for _, ins := range rs {
 		var name, environment string
 		for _, t := range ins.Instance.Tags {
@@ -46,11 +47,16 @@ func DrawTable(rs []ResultSet) {
 			*ins.Instance.PrivateIpAddress,
 			ins.Instance.LaunchTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"),
 			*ins.Instance.State.Name,
-			strconv.Itoa(ins.Score),
 		}
+		pip = *ins.Instance.PrivateIpAddress
+		count++
 		table.Append(row)
 	}
 	table.Render()
+
+	if count == 1 {
+		data.SSH(pip)
+	}
 }
 
 // Filter - External function used to filter ec2 hosts

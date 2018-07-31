@@ -78,6 +78,9 @@ func main() {
 	results.By(score).Sort(rs)
 
 	if !flagTable {
-		results.DrawTable(rs)
+		if flagCount > len(rs) {
+			flagCount = len(rs)
+		}
+		results.DrawTable(rs[0:flagCount])
 	}
 }

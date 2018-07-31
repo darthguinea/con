@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -122,4 +124,14 @@ func getEC2HostsThreads(wg *sync.WaitGroup, r string) (*ec2.DescribeInstancesOut
 	wg.Done()
 
 	return reservations, nil
+}
+
+func SSH(host string) {
+	cmd := "ssh " + host
+	log.Info("Running [%v]", cmd)
+	parts := strings.Fields(cmd)
+	_, err := exec.Command(parts[0], parts[1]).Output()
+	if err != nil {
+		log.Info("Error: %s", err)
+	}
 }
