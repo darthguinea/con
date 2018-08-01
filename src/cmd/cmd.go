@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"os/exec"
 	"strings"
+
+	"../log"
 )
 
 func exe_cmd(command string) bool {
@@ -19,10 +20,10 @@ func exe_cmd(command string) bool {
 
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		log.Error("[%v] - [%v]", err, stderr.String())
 		return false
 	}
-	fmt.Println("Result: " + out.String())
+	log.Info("Result: [%v]", out.String())
 	return true
 }
 
