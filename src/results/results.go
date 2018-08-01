@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"../data"
+	"../cmd"
 	"../log"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -55,7 +55,7 @@ func DrawTable(rs []ResultSet) {
 	table.Render()
 
 	if count == 1 {
-		data.SSH(pip)
+		cmd.Exec("ssh " + pip)
 	}
 }
 

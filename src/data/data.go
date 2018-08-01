@@ -5,8 +5,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	"strings"
 	"sync"
 	"time"
 
@@ -36,8 +34,8 @@ func GetHosts(r []string, c bool) []*ec2.DescribeInstancesOutput {
 		timestamp := stat.ModTime().Unix()
 		timeNow := time.Now().Unix()
 
-		if (timeNow - timestamp) >= 3600 {
-			log.Warn("Cached file is over 1 hour old, regenerating")
+		if (timeNow - timestamp) >= 300 {
+			log.Warn("Cached file is over 5 minutes old, regenerating")
 			data := getEC2Hosts(r)
 			writeCachedFile(data)
 			return data
@@ -124,14 +122,4 @@ func getEC2HostsThreads(wg *sync.WaitGroup, r string) (*ec2.DescribeInstancesOut
 	wg.Done()
 
 	return reservations, nil
-}
-
-func SSH(host string) {
-	cmd := "ssh " + host
-	log.Info("Running [%v]", cmd)
-	parts := strings.Fields(cmd)
-	_, err := exec.Command(parts[0], parts[1]).Output()
-	if err != nil {
-		log.Info("Error: %s", err)
-	}
 }

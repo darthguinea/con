@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"./src/config"
@@ -40,7 +42,13 @@ func main() {
 	flag.BoolVar(&flagTable, "D", false, "-D Do not render table (for debugging)")
 	flag.Parse()
 
-	config.Load(&Config, "config.json")
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+
+	if err != nil {
+		log.Error("Problem loading configuration file [%v]", err)
+	}
+
+	config.Load(&Config, dir+"/config.json")
 	log.SetLevel(flagLogLevel)
 
 	search := flag.Args()
