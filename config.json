@@ -1,4 +1,5 @@
 {
+  "cache_file": "/tmp/ec2.json",
   "regions": [
     "us-east-2",
     "us-east-1",
@@ -19,5 +20,16 @@
     "eu-west-3",
     "sa-east-1"
   ],
+  "search": {
+    "tags": [
+      "Name",
+      "Environment",
+      "Company"
+    ]
+  },
+  "display": {
+    "name": "name",
+    "environment": "environment"
+  },
   "output": "json"
 }
