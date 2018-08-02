@@ -11,6 +11,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+// RemoveCacheFile Removes the cache file
 func RemoveCacheFile(path string) {
 	if f, _ := os.Stat(path); f.IsDir() == false {
 		log.Warn("Removing cache file")
@@ -18,10 +19,18 @@ func RemoveCacheFile(path string) {
 	}
 }
 
-func DrawTable(rs []ResultSet) {
-	header := []string{
-		"Name",
-		"Environment",
+// DrawTable takes the resultset and converts it into a table
+// parameters: []ResultSet
+func DrawTable(display map[string]string, rs []ResultSet) {
+	customHeader := []string{}
+	rowOrdering := []string{}
+
+	for k, v := range display {
+		customHeader = append(customHeader, k)
+		rowOrdering = append(rowOrdering, v)
+	}
+
+	defaultHeader := []string{
 		"Instance Id",
 		"Private Ip",
 		"Launch Time",
@@ -29,7 +38,12 @@ func DrawTable(rs []ResultSet) {
 		"Region",
 	}
 
+	header := append(customHeader, defaultHeader...)
+
 	log.Info("Drawing table of results")
+	log.Debug("Custom header: %v", customHeader)
+	log.Debug("Default header: %v", defaultHeader)
+	log.Debug("Header: %v", header)
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(header)
 	table.SetRowLine(true)
@@ -37,26 +51,29 @@ func DrawTable(rs []ResultSet) {
 	pip := ""
 	count := 0
 	for _, ins := range rs {
-		var name, environment string
-		for _, t := range ins.Instance.Tags {
-			if *t.Key == "Name" {
-				name = *t.Value
-			}
-			if *t.Key == "Environment" {
-				environment = *t.Value
-			}
+		customRow := []string{}
+		defaultRow := []string{}
+
+		log.Debug("New row:")
+
+		for _, v := range rowOrdering {
+			value := getTagValue(ins.Instance.Tags, v)
+			log.Debug("Searching for element item [%v] found [%v]", v, value)
+			customRow = append(customRow, value)
 		}
+		log.Debug("Appending custom row item [%v]", customRow)
 
 		// dt := ins.LaunchTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"),
-		row := []string{
-			name,
-			environment,
+		defaultRow = []string{
 			*ins.Instance.InstanceId,
 			*ins.Instance.PrivateIpAddress,
 			ins.Instance.LaunchTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"),
 			*ins.Instance.State.Name,
 			*ins.Instance.Placement.AvailabilityZone,
 		}
+
+		row := append(customRow, defaultRow...)
+
 		pip = *ins.Instance.PrivateIpAddress
 		count++
 		table.Append(row)
@@ -118,6 +135,15 @@ func Filter(r []*ec2.DescribeInstancesOutput, s []string, tags []string) []Resul
 	}
 	log.Debug("Found [%v]", len(rs))
 	return rs
+}
+
+func getTagValue(tags []*ec2.Tag, key string) string {
+	for _, v := range tags {
+		if strings.ToLower(key) == strings.ToLower(*v.Key) {
+			return *v.Value
+		}
+	}
+	return ""
 }
 
 func searchTag(tags []string, val string) bool {

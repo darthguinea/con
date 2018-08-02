@@ -12,13 +12,18 @@ import (
 	"./src/results"
 )
 
+// Config global struct for configuration
 var Config Configuration
 
+// Configuration data structure of config file
 type Configuration struct {
 	CacheFile string              `json:"cache_file"`
 	Regions   []string            `json:"regions"`
 	Search    SearchConfiguration `json:"search"`
+	Display   map[string]string   `json:"display"`
 }
+
+// SearchConfiguration struct of tags to search (loaded from config file)
 type SearchConfiguration struct {
 	Tags []string `json:"tags"`
 }
@@ -38,7 +43,7 @@ func main() {
 	flag.StringVar(&flagTags, "t", "config", "-t <tags> Which tags to search seperated by a comma, default uses config")
 	flag.BoolVar(&flagClearCache, "C", false, "-C Clear cache")
 	flag.IntVar(&flagCount, "c", 5, "-c <count> Number of results to show")
-	flag.BoolVar(&flagTable, "D", false, "-D Do not render table (for debugging)")
+	flag.BoolVar(&flagTable, "Q", false, "-Q Do not render table (for debugging)")
 	flag.Parse()
 
 	ex, err := os.Executable()
@@ -86,6 +91,7 @@ func main() {
 		if flagCount > len(rs) {
 			flagCount = len(rs)
 		}
-		results.DrawTable(rs[0:flagCount])
+		log.Info("Custom display items %v", Config.Display)
+		results.DrawTable(Config.Display, rs[0:flagCount])
 	}
 }
