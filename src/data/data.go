@@ -21,10 +21,6 @@ func getSession(r string) *session.Session {
 	})
 }
 
-func filterHosts(search []string) {
-
-}
-
 // GetHosts - External function used to fetch host information,
 // parameters: regions []string, clear_cache bool, search []string
 func GetHosts(r []string, c bool) []*ec2.DescribeInstancesOutput {

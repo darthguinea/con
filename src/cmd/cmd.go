@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -10,13 +11,14 @@ import (
 
 func exe_cmd(command string) bool {
 	parts := strings.Fields(command)
-	cmd := exec.Command(parts[0], parts[1])
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
+	cmd := exec.Command(parts[0], parts[1])
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 
 	err := cmd.Run()
 	if err != nil {

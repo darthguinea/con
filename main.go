@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"./src/config"
@@ -15,8 +15,9 @@ import (
 var Config Configuration
 
 type Configuration struct {
-	Regions []string            `json:"regions"`
-	Search  SearchConfiguration `json:"search"`
+	CacheFile string              `json:"cache_file"`
+	Regions   []string            `json:"regions"`
+	Search    SearchConfiguration `json:"search"`
 }
 type SearchConfiguration struct {
 	Tags []string `json:"tags"`
@@ -29,7 +30,6 @@ func main() {
 		flagTags       string
 		flagClearCache bool
 		flagCount      int
-		flagOr         bool
 		flagTable      bool
 	)
 
@@ -38,15 +38,14 @@ func main() {
 	flag.StringVar(&flagTags, "t", "config", "-t <tags> Which tags to search seperated by a comma, default uses config")
 	flag.BoolVar(&flagClearCache, "C", false, "-C Clear cache")
 	flag.IntVar(&flagCount, "c", 5, "-c <count> Number of results to show")
-	flag.BoolVar(&flagOr, "o", false, "-o Search using OR instead of AND")
 	flag.BoolVar(&flagTable, "D", false, "-D Do not render table (for debugging)")
 	flag.Parse()
 
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-
+	ex, err := os.Executable()
 	if err != nil {
-		log.Error("Problem loading configuration file [%v]", err)
+		log.Fatal(err)
 	}
+	dir := path.Dir(ex)
 
 	config.Load(&Config, dir+"/config.json")
 	log.SetLevel(flagLogLevel)
@@ -56,12 +55,10 @@ func main() {
 	log.Info("Starting con")
 
 	log.Debug("Searching values %v", search)
-	if flagOr {
-		log.Debug("Using OR flag to search")
-	}
 
 	if flagClearCache {
 		log.Info("Clearing cache")
+		results.RemoveCacheFile(Config.CacheFile)
 	}
 
 	if strings.Compare(flagRegions, "config") != 0 {
@@ -78,7 +75,7 @@ func main() {
 	log.Debug("Using configuration: %v", Config)
 
 	d := data.GetHosts(Config.Regions, flagClearCache)
-	rs := results.Filter(d, search, Config.Search.Tags, flagOr)
+	rs := results.Filter(d, search, Config.Search.Tags)
 
 	score := func(rs1, rs2 *results.ResultSet) bool {
 		return rs1.Score > rs2.Score

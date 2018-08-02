@@ -11,6 +11,13 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
+func RemoveCacheFile(path string) {
+	if f, _ := os.Stat(path); f.IsDir() == false {
+		log.Warn("Removing cache file")
+		os.Remove(path)
+	}
+}
+
 func DrawTable(rs []ResultSet) {
 	header := []string{
 		"Name",
@@ -19,6 +26,7 @@ func DrawTable(rs []ResultSet) {
 		"Private Ip",
 		"Launch Time",
 		"State",
+		"Region",
 	}
 
 	log.Info("Drawing table of results")
@@ -47,6 +55,7 @@ func DrawTable(rs []ResultSet) {
 			*ins.Instance.PrivateIpAddress,
 			ins.Instance.LaunchTime.Local().Format("Mon Jan 2 15:04:05 MST 2006"),
 			*ins.Instance.State.Name,
+			*ins.Instance.Placement.AvailabilityZone,
 		}
 		pip = *ins.Instance.PrivateIpAddress
 		count++
@@ -62,7 +71,7 @@ func DrawTable(rs []ResultSet) {
 // Filter - External function used to filter ec2 hosts
 // parameters: Reservations []*ec2.DescribeInstancesOutput, search []string, tags []string, or_flag bool
 // returns: []*ec2.Instance
-func Filter(r []*ec2.DescribeInstancesOutput, s []string, tags []string, o bool) []ResultSet {
+func Filter(r []*ec2.DescribeInstancesOutput, s []string, tags []string) []ResultSet {
 	var rs []ResultSet
 
 	for _, rv := range r {
@@ -79,12 +88,15 @@ func Filter(r []*ec2.DescribeInstancesOutput, s []string, tags []string, o bool)
 					if *ins.PrivateIpAddress == search {
 						score = 1000
 					}
+					// Search the placement as well:
+					if strings.Contains(*ins.Placement.AvailabilityZone, search) {
+						score = score + 200
+					}
 					for _, t := range ins.Tags {
 						if searchTag(tags, *t.Key) {
 							if strings.Contains(strings.ToLower(*t.Value), strings.ToLower(search)) {
 								foundKeyword = true
 								score = score + 100
-								log.Info("%v = %v %v", *t.Key, *t.Value, score)
 							}
 						}
 					}
