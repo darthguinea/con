@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"../log"
+	"github.com/darthguinea/golib/log"
 )
 
 func exe_cmd(command string) bool {

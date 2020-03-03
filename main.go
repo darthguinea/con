@@ -3,95 +3,120 @@ package main
 import (
 	"flag"
 	"os"
-	"path"
 	"strings"
+	"sync"
 
+	"./src/cache"
+	"./src/cmd"
 	"./src/config"
 	"./src/data"
-	"./src/log"
 	"./src/results"
+
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/darthguinea/golib/iv"
+	"github.com/darthguinea/golib/log"
+	"github.com/ktr0731/go-fuzzyfinder"
 )
-
-// Config global struct for configuration
-var Config Configuration
-
-// Configuration data structure of config file
-type Configuration struct {
-	CacheFile string              `json:"cache_file"`
-	Regions   []string            `json:"regions"`
-	Search    SearchConfiguration `json:"search"`
-	Display   map[string]string   `json:"display"`
-}
-
-// SearchConfiguration struct of tags to search (loaded from config file)
-type SearchConfiguration struct {
-	Tags []string `json:"tags"`
-}
 
 func main() {
 	var (
-		flagLogLevel   int
-		flagRegions    string
-		flagTags       string
-		flagClearCache bool
-		flagCount      int
-		flagTable      bool
+		flagVerbose         bool
+		flagDebug           bool
+		flagRemoveCacheFile bool
+		flagConfigPath      string
+		flagDontSSH         bool
 	)
 
-	flag.IntVar(&flagLogLevel, "l", 0, "-l <level> Set the log level 1..5")
-	flag.StringVar(&flagRegions, "r", "config", "-r <regions> Set the regions separated by comma, default will use the config")
-	flag.StringVar(&flagTags, "t", "config", "-t <tags> Which tags to search seperated by a comma, default uses config")
-	flag.BoolVar(&flagClearCache, "C", false, "-C Clear cache")
-	flag.IntVar(&flagCount, "c", 5, "-c <count> Number of results to show")
-	flag.BoolVar(&flagTable, "Q", false, "-Q Do not render table (for debugging)")
+	flagConfigDefault := strings.Join([]string{iv.CWD(), "con.json"}, "/")
+	flag.StringVar(&flagConfigPath, "c", flagConfigDefault, "-c <config_file> config file location")
+	flag.BoolVar(&flagVerbose, "v", false, "-v verbose.")
+	flag.BoolVar(&flagDebug, "D", false, "-D debug mode.")
+	flag.BoolVar(&flagDontSSH, "s", false, "-s dont ssh to server")
+	flag.BoolVar(&flagRemoveCacheFile, "C", false, "-C remove cache file (force scan).")
 	flag.Parse()
 
-	ex, err := os.Executable()
-	if err != nil {
-		log.Fatal(err)
+	if flagVerbose {
+		log.SetLevel(log.INFO)
 	}
-	dir := path.Dir(ex)
-
-	config.Load(&Config, dir+"/config.json")
-	log.SetLevel(flagLogLevel)
-
-	search := flag.Args()
-
-	log.Info("Starting con")
-
-	log.Debug("Searching values %v", search)
-
-	if flagClearCache {
-		log.Info("Clearing cache")
-		results.RemoveCacheFile(Config.CacheFile)
+	if flagDebug {
+		log.SetLevel(log.DEBUG)
 	}
 
-	if strings.Compare(flagRegions, "config") != 0 {
-		Config.Regions = strings.Split(flagRegions, ",")
-		log.Debug("Overriding region settings %v", Config.Regions)
-	}
-	if strings.Compare(flagTags, "config") != 0 {
-		Config.Search.Tags = strings.Split(flagTags, ",")
-		log.Debug("Overriding tags search %v", Config.Search.Tags)
-	}
-	log.Debug("Searching %v", Config.Search)
-	log.Debug("Searching tags %v", Config.Search.Tags)
+	cfg := config.Config{}
+	iv.Load(&cfg, &flagConfigPath)
 
-	log.Debug("Using configuration: %v", Config)
+	if flagRemoveCacheFile || cache.IsCacheExpired(cfg.CacheFile, cfg.CacheTTLSeconds) {
+		log.Debug("reading cache file [%v]", *cfg.CacheFile)
+		cache.RemoveCacheFile(cfg.CacheFile)
 
-	d := data.GetHosts(Config.Regions, flagClearCache)
-	rs := results.Filter(d, search, Config.Search.Tags)
+		wg := sync.WaitGroup{}
 
-	score := func(rs1, rs2 *results.ResultSet) bool {
-		return rs1.Score > rs2.Score
-	}
-	results.By(score).Sort(rs)
+		var reservations []*[]*ec2.DescribeInstancesOutput
+		for _, r := range *cfg.Regions {
+			wg.Add(1)
+			go func(wg *sync.WaitGroup, region *string) {
+				log.Info("scanning region %v", *region)
 
-	if !flagTable {
-		if flagCount > len(rs) {
-			flagCount = len(rs)
+				result := results.GetAllReservations(region)
+				reservations = append(reservations, result)
+
+				wg.Done()
+			}(&wg, r)
 		}
-		log.Info("Custom display items %v", Config.Display)
-		results.DrawTable(Config.Display, rs[0:flagCount])
+		wg.Wait()
+
+		cache.Save(cfg.CacheFile, &reservations)
+	}
+
+	instancesOutput := cache.Load(cfg.CacheFile)
+	instances := data.ConvertToArray(instancesOutput)
+	idx, err := fuzzyfinder.FindMulti(
+		instances,
+		func(i int) string {
+			return instances[i].Search
+		},
+		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
+			if i == -1 {
+				return ""
+			}
+			return log.Sprintf("Name: \t%s\n"+
+				"InstanceId: %s\n"+
+				"Environment: %s\n"+
+				"Stack: \t%s\n"+
+				"Subnet: \t%s\n"+
+				"Availability Zone: \t%s\n"+
+				"Public Ip: \t%s\n"+
+				"Private Ip: \t%s\n"+
+				"Type: \t%s\n"+
+				"State: \t%s\n"+
+				"LaunchTime: \t%s\n",
+				instances[i].Name,
+				instances[i].InstanceId,
+				instances[i].Environment,
+				instances[i].EnvironmentTag,
+				instances[i].SubnetId,
+				instances[i].AvailabilityZone,
+				instances[i].PublicIp,
+				instances[i].PrivateIp,
+				instances[i].Type,
+				instances[i].State,
+				instances[i].LaunchTime,
+			)
+		}))
+	if err != nil {
+		log.Print("exiting")
+		os.Exit(1)
+	}
+	if flagDontSSH {
+		log.Info("not connecting to server")
+		os.Exit(0)
+	}
+	log.Info("connecting to server")
+	if len(instances[idx[0]].PublicIp) > 1 {
+		log.Info("using public ip address [%v]", instances[idx[0]].PublicIp)
+		cmd.Exec("ssh " + instances[idx[0]].PublicIp)
+	} else {
+		log.Info("using private ip address [%v]", instances[idx[0]].PrivateIp)
+		cmd.Exec("ssh " + instances[idx[0]].PrivateIp)
 	}
 }

@@ -20,16 +20,5 @@
     "eu-west-3",
     "sa-east-1"
   ],
-  "search": {
-    "tags": [
-      "Name",
-      "Environment",
-      "Company"
-    ]
-  },
-  "display": {
-    "name": "name",
-    "environment": "environment"
-  },
   "output": "json"
 }
