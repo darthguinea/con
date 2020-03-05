@@ -1,5 +1,5 @@
 export APP=$(shell basename $(CURDIR))
-export CONFIG=$(shell basename $(CURDIR)).json
+export CONFIG=$(shell basename $(CURDIR))
 export INSTALL_PATH=/usr/local/bin
 
 all:

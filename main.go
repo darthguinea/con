@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"./src/cache"
-	"./src/cmd"
+	// "./src/cmd"
 	"./src/config"
 	"./src/data"
 	"./src/results"
@@ -114,9 +114,11 @@ func main() {
 	log.Info("connecting to server")
 	if len(instances[idx[0]].PublicIp) > 1 {
 		log.Info("using public ip address [%v]", instances[idx[0]].PublicIp)
-		cmd.Exec("ssh " + instances[idx[0]].PublicIp)
+		// cmd.Exec("ssh " + instances[idx[0]].PublicIp)
+		log.Print("%v", instances[idx[0]].PublicIp)
 	} else {
 		log.Info("using private ip address [%v]", instances[idx[0]].PrivateIp)
-		cmd.Exec("ssh " + instances[idx[0]].PrivateIp)
+		// cmd.Exec("ssh " + instances[idx[0]].PrivateIp)
+		log.Print("%v", instances[idx[0]].PrivateIp)
 	}
 }
